@@ -1,0 +1,70 @@
+{
+  "namespace": "example.avro",
+  "type": "record",
+  "name": "Person",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "first_name",
+      "type": "string"
+    },
+    {
+      "name": "middle_name",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    {
+      "name": "last_name",
+      "type": "string"
+    },
+    {
+      "name": "dob",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Address",
+          "fields": [
+            {
+              "name": "address_line1",
+              "type": "string"
+            },
+            {
+              "name": "address_line2",
+              "type": "string"
+            },
+            {
+              "name": "city",
+              "type": "string"
+            },
+            {
+              "name": "state",
+              "type": "string"
+            },
+            {
+              "name": "zip",
+              "type": "int"
+            },
+            {
+              "name": "address_type",
+              "type": {
+                "type": "enum",
+                "name": "event_type_enums",
+                "symbols": ["Mailing", "Residential"]
+            }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

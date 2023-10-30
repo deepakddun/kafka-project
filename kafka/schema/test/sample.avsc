@@ -1,0 +1,29 @@
+{
+  "namespace": "example.avro",
+  "type": "record",
+  "name": "Person",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+
+    {
+      "name": "address",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "Address",
+          "fields": [
+            {
+              "name": "address_line1",
+              "type": "string"
+            }
+
+          ]
+        }
+      }
+    }
+  ]
+}
