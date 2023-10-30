@@ -1,5 +1,10 @@
+import uuid
+from typing import Dict
+
 import uvicorn
 from fastapi import FastAPI, status
+
+from api_kafka_integration.kafka_api_util import copytokafkaobj
 from infra import logging as logger
 from models.person import Person
 
@@ -12,8 +17,9 @@ def health():
 
 
 @app.post("/register", status_code=status.HTTP_201_CREATED)
-def register_person(person: Person):
-    return {'response':person}
+async def register_person(person: Person) -> Dict[str,uuid.UUID]:
+    result = await copytokafkaobj(person)
+    return {'id':result}
 
 
 if __name__ == '__main__':
