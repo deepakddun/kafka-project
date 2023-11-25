@@ -103,7 +103,7 @@ def get_schema() -> str:
     print(path)
     with open(f"{path}\\schema\\person_nested.avsc") as f:
         schema_str = f.read()
-    print(schema_str)
+    #print(schema_str)
     return schema_str
 
 
@@ -125,6 +125,8 @@ async def send_message(person: Person) -> uuid.UUID:
     result = await producer.send(topic=topic,
                                  key=string_serializer(str(id)),
                                  value=avro_serializer(person, SerializationContext(topic, MessageField.VALUE)))
+
+    #await producer.flush()
     await producer.stop()
     return id
 

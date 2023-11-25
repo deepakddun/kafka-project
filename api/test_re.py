@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 
 fake = Faker()
-for i in range(10):
+for i in range(20):
     # fake = Faker()
     data = {
         "id": str(i),
@@ -30,4 +30,9 @@ for i in range(10):
     json_data = json.dumps(data).encode('utf8')
     res = requests.post(url="http://localhost:8000/register", data=json_data)
     time.sleep(2)
+    if i == 5:
+        res = requests.post(url="http://localhost:8000/register", data=json.dumps(f"Deepak {i}"))
+        #time.sleep(100)
     print(res.status_code)
+
+
