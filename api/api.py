@@ -20,7 +20,7 @@ def health():
 
 
 @app.post("/register", status_code=status.HTTP_201_CREATED)
-async def register_person(person: Person | None = None) -> Dict[str, uuid.UUID]:
+async def register_person(person: Person) -> Dict[str, uuid.UUID]:
     print(f'Input data => {person}')
     result = await copytokafkaobj(person)
     return {'id': result}

@@ -21,7 +21,7 @@ class PhoneNumber(BaseModel):
     type: PhoneNumberType
 
 
-class Address(BaseModel,use_enum_values=True):
+class Address(BaseModel, use_enum_values=True):
     address_line1: str
     address_line2: Optional[str] = None
     city: str
@@ -38,3 +38,8 @@ class Person(BaseModel):
     dob: str
     address: List[Address]
     # phones:list[PhoneNumber]
+
+
+class Error(BaseModel):
+    errorType: str
+    errorDesc: str

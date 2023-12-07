@@ -20,19 +20,21 @@
 
 import argparse
 import os
+import uuid
 from typing import Dict, List
 
 from aiokafka import AIOKafkaConsumer, ConsumerRecord, TopicPartition, AIOKafkaProducer
 from confluent_kafka import Consumer
 from confluent_kafka.serialization import SerializationContext, MessageField, SerializationError
 from confluent_kafka.schema_registry import SchemaRegistryClient
-from confluent_kafka.schema_registry.avro import AvroDeserializer
-
+from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
+import traceback as tb
 from confluent_kafka.serialization import StringSerializer
-from models.person import Person
+from models.person import Person, Error
 import asyncio
-# from confluent_kafka.schema_registry.
 
+
+# from confluent_kafka.schema_registry.
 
 
 # class User:
@@ -117,22 +119,43 @@ def dict_to_user(obj, ctx):
                   )
 
 
+def error_to_dict(error: Error, ctx):
+    """
+    Returns a dict representation of a User instance for serialization.
+
+    Args:
+        person (User): User instance.
+
+        ctx (SerializationContext): Metadata pertaining to the serialization
+            operation.
+
+    Returns:
+        dict: Dict populated with user attributes to be serialized.
+    """
+    error_dict = dict(errorType=error.errorType, errorDesc=error.errorDesc)
+
+    return error_dict
+
+
 async def main():
     topic = "person"
     #  is_specific = args.specific == "true"
 
-    schema = "person_nested.avsc"
-
-    path = os.path.realpath(os.path.dirname(__file__))
-    with open(f"{path}/schema/{schema}") as f:
-        schema_str = f.read()
+    # schema = "person_nested.avsc"
 
     sr_conf = {'url': 'http://localhost:8081'}
     schema_registry_client = SchemaRegistryClient(sr_conf)
-
+    schema_str: str = get_schema()
+    error_schema: str = get_error_schema()
     avro_deserializer = AvroDeserializer(schema_registry_client,
                                          schema_str,
                                          dict_to_user)
+
+    ################################  ERROR SENDING PRODUCER  #############################################
+
+    # id: uuid.UUID = uuid.uuid4()
+
+    ################################  ERROR SENDING PRODUCER  #############################################
 
     consumer_conf = {'bootstrap.servers': 'localhost:9092',
                      'group.id': 'test',
@@ -144,11 +167,10 @@ async def main():
     #                             auto_offset_reset='earliest'
     #                             )
 
-    #consumer = AIOKafkaConsumer(*consumer_conf,)
-    consumer = AIOKafkaConsumer(bootstrap_servers="localhost:9092",group_id="test",auto_offset_reset="latest",
+    # consumer = AIOKafkaConsumer(*consumer_conf,)
+    consumer = AIOKafkaConsumer(bootstrap_servers="localhost:9092", group_id="test", auto_offset_reset="latest",
                                 enable_auto_commit=False
                                 )
-    producer = AIOKafkaProducer(bootstrap_servers='localhost:9092')
 
     consumer.subscribe([topic])
     await consumer.start()
@@ -175,19 +197,35 @@ async def main():
                             f'{user.id} , First Name = {user.first_name}, Last Name = {user.last_name} , Address = {user.address}'
 
                         )
+                        #search the person table by id
 
                 except SerializationError as e:
+                    tb.print_exc()
+                    errorDesc: str = ''.join(tb.format_exception(None, e, e.__traceback__))
                     print(msg.value)
                     print("Inside Serialization Exception block")
                     print(e)
-                    # send to dead letter queue
+                    string_serializer = StringSerializer('utf_8')
+                    producer = AIOKafkaProducer(bootstrap_servers='localhost:9092')
+                    avro_serializer = AvroSerializer(schema_registry_client,
+                                                     error_schema,
+                                                     error_to_dict)
+
+                    error = Error(errorType="SerializationError", errorDesc=errorDesc)
                     await producer.start()
-                    result = await producer.send(topic="deadletterqueue",
-                                                 value=msg.value)
+
+                    # send to dead letter queue
+                    # result = await producer.send(topic="deadletterqueue",
+                    #                              value=error)
+
+                    await producer.send(topic="deadletterqueue",
+                                        key=string_serializer(str(uuid.uuid4())),
+                                        value=avro_serializer(error, SerializationContext("deadletterqueue",
+                                                                                          MessageField.VALUE))
+                                        )
 
                     await producer.flush()
-                    #await producer.stop()
-
+                    # await producer.stop()
 
             await consumer.commit()
         except KeyboardInterrupt as li:
@@ -199,31 +237,24 @@ async def main():
     await consumer.stop()
 
 
-if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description="AvroDeserializer example")
-    # parser0.add_argument('-b', dest="bootstrap_servers", required=True,
-    #                     help="Bootstrap broker(s) (host[:port])")
-    # parser.add_argument('-s', dest="schema_registry", required=True,
-    #                     help="Schema Registry (http(s)://host[:port]")
-    # parser.add_argument('-t', dest="topic", default="example_serde_avro",
-    #                     help="Topic name")
-    # parser.add_argument('-g', dest="group", default="example_serde_avro",
-    #                     help="Consumer group")
-    # parser.add_argument('-p', dest="specific", default="true",
-    #                     help="Avro specific record")
+def get_error_schema() -> str:
+    # pass
+    path = os.path.realpath(os.path.dirname(__file__))
+    with open(f"{path}/schema/error.avsc") as f:
+        error_schema_str = f.read()
+    print(error_schema_str)
+    return error_schema_str
 
-    try:
-        #     result = loop.run_until_complete(main())
-        #    loop = asyncio.get_event_loop()
-        # io.run(main())
-        #   consumer_task = loop.create_task(main())
-        # loop.run_until_complete(main())
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main())
-        loop.run_until_complete(main())
 
-    except KeyboardInterrupt as k:
-        print("Hello World inside Keyboard Exception ")
-    except Exception as e:
-        print("Closing")
-        print(e.with_traceback())
+def get_schema() -> str:
+    """
+    search for the latest schema
+
+    :return: schema str
+    """
+    schema_registry_conf = {'url': "http://localhost:8081"}
+    sr = SchemaRegistryClient(schema_registry_conf)
+    return sr.get_latest_version(subject_name='person-value').schema.schema_str
+
+
+
