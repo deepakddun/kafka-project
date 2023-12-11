@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 
 fake = Faker()
-for i in range(1):
+for i in range(10):
     # fake = Faker()
     data = {
         "id": str(i),

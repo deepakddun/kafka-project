@@ -41,7 +41,7 @@ async def search_person_by_id(id: str) -> bool:
 
 async def add_to_db(id, first, last, dob) -> bool:
     # get cursor
-    conn:aiomysql.Connection = await mysql_conn()
+    conn: aiomysql.Connection = await mysql_conn()
     cursor: aiomysql.Cursor = await conn.cursor()
     qry: str = "INSERT INTO  Person (person_id , first_name , last_name , dob) VALUES (%s , %s , %s, %s)"
     person_id: Tuple = (id, first, last, dob)
@@ -49,6 +49,13 @@ async def add_to_db(id, first, last, dob) -> bool:
     print(f"{cursor.rowcount} inserted")
     await cursor.close()
     await conn.commit()
+
+
+async def search_and_insert(id, first, last, dob):
+    if not await search_person_by_id(id):
+        await add_to_db(id, first, last, dob)
+    else:
+        print("record aleady exists")
 
 
 if __name__ == '__main__':

@@ -30,6 +30,8 @@ from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer, AvroSerializer
 import traceback as tb
 from confluent_kafka.serialization import StringSerializer
+
+from db.kafka_to_db import search_and_insert
 from models.person import Person, Error
 import asyncio
 
@@ -197,7 +199,8 @@ async def main():
                             f'{user.id} , First Name = {user.first_name}, Last Name = {user.last_name} , Address = {user.address}'
 
                         )
-                        #search the person table by id
+                        # search the person table by id
+                        await search_and_insert(user.id, user.first_name, user.last_name, user.dob)
 
                 except SerializationError as e:
                     tb.print_exc()
@@ -257,4 +260,31 @@ def get_schema() -> str:
     return sr.get_latest_version(subject_name='person-value').schema.schema_str
 
 
+if __name__ == '__main__':
+    # parser = argparse.ArgumentParser(description="AvroDeserializer example")
+    # parser0.add_argument('-b', dest="bootstrap_servers", required=True,
+    #                     help="Bootstrap broker(s) (host[:port])")
+    # parser.add_argument('-s', dest="schema_registry", required=True,
+    #                     help="Schema Registry (http(s)://host[:port]")
+    # parser.add_argument('-t', dest="topic", default="example_serde_avro",
+    #                     help="Topic name")
+    # parser.add_argument('-g', dest="group", default="example_serde_avro",
+    #                     help="Consumer group")
+    # parser.add_argument('-p', dest="specific", default="true",
+    #                     help="Avro specific record")
 
+    try:
+        #     result = loop.run_until_complete(main())
+        #    loop = asyncio.get_event_loop()
+        # io.run(main())
+        #   consumer_task = loop.create_task(main())
+        # loop.run_until_complete(main())
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+
+
+    except KeyboardInterrupt as k:
+        print("Hello World inside Keyboard Exception ")
+    except Exception as e:
+        print("Closing")
+        print(e)
